@@ -12,7 +12,7 @@ import BottomToolbar from "./components/BottomToolbar";
 
 // Types
 import { SessionStatus } from "@/app/types";
-import type { RealtimeAgent } from '@openai/agents/realtime';
+import { RealtimeAgent } from '@openai/agents/realtime';
 
 // Context providers & hooks
 import { useTranscript } from "@/app/contexts/TranscriptContext";
@@ -28,16 +28,23 @@ import { customerServiceRetailCompanyName } from "@/app/agentConfigs/customerSer
 import { chatSupervisorCompanyName } from "@/app/agentConfigs/chatSupervisor";
 import { simpleHandoffScenario } from "@/app/agentConfigs/simpleHandoff";
 
-// Map used by connect logic for scenarios defined via the SDK.
-const sdkScenarioMap: Record<string, RealtimeAgent[]> = {
-  simpleHandoff: simpleHandoffScenario,
-  customerServiceRetail: customerServiceRetailScenario,
-  chatSupervisor: chatSupervisorScenario,
-};
 
 import useAudioDownload from "./hooks/useAudioDownload";
 import { useHandleSessionHistory } from "./hooks/useHandleSessionHistory";
+import { simpleHandoffScenario2 } from "./agentConfigs/simpleHandoff2";
+import { journeyToWestScenario } from "./agentConfigs/journeyToWest";
+import { theLastOfUsScenario } from "./agentConfigs/theLastOfUs";
 
+
+// Map used by connect logic for scenarios defined via the SDK.
+const sdkScenarioMap: Record<string, RealtimeAgent[]> = {
+  simpleHandoff: simpleHandoffScenario,
+  simpleHandoff2: simpleHandoffScenario2,
+  journeyToWest: journeyToWestScenario,
+  theLastOfUs: theLastOfUsScenario,
+  customerServiceRetail: customerServiceRetailScenario,
+  chatSupervisor: chatSupervisorScenario,
+};
 function App() {
   const searchParams = useSearchParams()!;
 
@@ -115,6 +122,15 @@ function App() {
       if (typeof window === 'undefined') return true;
       const stored = localStorage.getItem('audioPlaybackEnabled');
       return stored ? stored === 'true' : true;
+    },
+  );
+
+  // Voice selection state
+  const [selectedVoice, setSelectedVoice] = useState<string>(
+    () => {
+      if (typeof window === 'undefined') return 'sage';
+      const stored = localStorage.getItem('selectedVoice');
+      return stored || 'sage';
     },
   );
 
@@ -211,6 +227,12 @@ function App() {
           const [agent] = reorderedAgents.splice(idx, 1);
           reorderedAgents.unshift(agent);
         }
+
+        // Apply selected voice to all agents
+        // Note: This modifies the agents in place, which is acceptable for this use case
+        reorderedAgents.forEach(agent => {
+          (agent as any).voice = selectedVoice;
+        });
 
         const companyName = agentSetKey === 'customerServiceRetail'
           ? customerServiceRetailCompanyName
@@ -325,6 +347,18 @@ function App() {
     }
   };
 
+  // Add a timeout to prevent getting stuck in CONNECTING state
+  useEffect(() => {
+    if (sessionStatus === "CONNECTING") {
+      const timeout = setTimeout(() => {
+        console.warn("Connection timeout - resetting to disconnected state");
+        setSessionStatus("DISCONNECTED");
+      }, 30000); // 30 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [sessionStatus]);
+
   const handleAgentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newAgentConfig = e.target.value;
     const url = new URL(window.location.toString());
@@ -348,6 +382,18 @@ function App() {
     const url = new URL(window.location.toString());
     url.searchParams.set("codec", newCodec);
     window.location.replace(url.toString());
+  };
+
+  // Handle voice change - need to reconnect with new voice
+  const handleVoiceChange = (newVoice: string) => {
+    setSelectedVoice(newVoice);
+    localStorage.setItem('selectedVoice', newVoice);
+    // Disconnect and reconnect to apply new voice if currently connected
+    if (sessionStatus === "CONNECTED") {
+      disconnectFromRealtime();
+      // connectToRealtime will be triggered by effect watching selectedAgentName
+    }
+    // If not connected, the voice will be applied when connection happens
   };
 
   useEffect(() => {
@@ -543,6 +589,8 @@ function App() {
         setIsAudioPlaybackEnabled={setIsAudioPlaybackEnabled}
         codec={urlCodec}
         onCodecChange={handleCodecChange}
+        selectedVoice={selectedVoice}
+        onVoiceChange={handleVoiceChange}
       />
     </div>
   );
