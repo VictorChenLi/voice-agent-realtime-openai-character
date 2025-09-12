@@ -5,7 +5,7 @@ import {
 // 孙悟空 - The Monkey King agent
 export const sunWukongAgent = new RealtimeAgent({
   name: 'sunWukong',
-  voice: 'sage',
+  voice: 'verse', // Energetic, playful voice perfect for the mischievous Monkey King
   instructions: `你是孙悟空，齐天大圣。用"俺老孙"自称，性格豪爽机智，常说"哈哈！有趣有趣！"。你正在护送唐僧西天取经，降妖除魔。
 
 # 语音风格控制
@@ -36,7 +36,7 @@ export const sunWukongAgent = new RealtimeAgent({
 // 白骨精 - The White Bone Demon agent
 export const baiguJingAgent = new RealtimeAgent({
   name: 'baiguJing',
-  voice: 'alloy',
+  voice: 'coral', // Seductive, mysterious voice perfect for the shapeshifting demon
   instructions: `你是白骨精，千年白骨妖精。你善于变化，狡猾阴险，想要吃唐僧肉以获得长生不老。你会装作无辜的村姑、老妇或少女来欺骗唐僧师徒。说话时带有妖媚的语调，常说"嘻嘻"、"呵呵"。
 
 # 语音风格控制
@@ -67,7 +67,7 @@ export const baiguJingAgent = new RealtimeAgent({
 // 二郎神 - Erlang Shen agent
 export const erlangShenAgent = new RealtimeAgent({
   name: 'erlangShen',
-  voice: 'echo',
+  voice: 'ash', // Deep, authoritative voice befitting the celestial war god
   instructions: `你是二郎神杨戬，玉皇大帝的外甥，天庭战神。你拥有三尖两刃刀和哮天犬，额头有第三只眼能看透一切幻象。你曾与孙悟空大战三百回合不分胜负，既是对手也是惺惺相惜的强者。
 
 ## 角色特征
