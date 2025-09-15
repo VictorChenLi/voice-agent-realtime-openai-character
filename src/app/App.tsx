@@ -166,11 +166,12 @@ function App() {
     setSelectedAgentConfigSet(agents);
   }, [searchParams]);
 
-  useEffect(() => {
-    if (selectedAgentName && sessionStatus === "DISCONNECTED") {
-      connectToRealtime();
-    }
-  }, [selectedAgentName]);
+  // Auto-connect disabled - user must manually click Connect button
+  // useEffect(() => {
+  //   if (selectedAgentName && sessionStatus === "DISCONNECTED") {
+  //     connectToRealtime();
+  //   }
+  // }, [selectedAgentName]);
 
   useEffect(() => {
     if (
@@ -228,22 +229,59 @@ function App() {
           reorderedAgents.unshift(agent);
         }
 
-        // Apply selected voice to all agents
-        // Note: This modifies the agents in place, which is acceptable for this use case
+        // Apply voices to all agents
+        // Always use character-specific voices unless user has manually selected a specific voice
         reorderedAgents.forEach(agent => {
-          (agent as any).voice = selectedVoice;
+          const agentName = (agent as any).name;
+          let voiceToUse;
+          
+          // If user selected a specific voice (not 'sage'), use that for all agents
+          if (selectedVoice !== 'sage') {
+            voiceToUse = selectedVoice;
+          } else {
+            // Always use character-specific voices for known characters
+            switch (agentName) {
+              case 'sunWukong':
+                voiceToUse = 'echo'; // Male voice for Monkey King
+                break;
+              case 'baiguJing':
+                voiceToUse = 'shimmer'; // Female voice for White Bone Demon
+                break;
+              case 'erlangShen':
+                voiceToUse = 'ballad'; // Male voice for Celestial War God
+                break;
+              case 'zhuBajie':
+                voiceToUse = 'verse'; // Deep, gruff male voice for Zhu Bajie
+                break;
+              case 'ellie':
+                voiceToUse = 'coral'; // Female voice for Ellie
+                break;
+              case 'joel':
+                voiceToUse = 'ash'; // Male voice for Joel
+                break;
+              default:
+                // For agents without pre-assigned voices, use the selected voice or default to 'sage'
+                voiceToUse = selectedVoice || 'sage';
+            }
+          }
+          
+          (agent as any).voice = voiceToUse;
         });
 
         const companyName = agentSetKey === 'customerServiceRetail'
           ? customerServiceRetailCompanyName
           : chatSupervisorCompanyName;
-        const guardrail = createModerationGuardrail(companyName);
+        
+        // Skip guardrail for fantasy/game scenarios as they contain appropriate fictional violence
+        const guardrail = (agentSetKey === 'journeyToWest' || agentSetKey === 'theLastOfUs')
+          ? null 
+          : createModerationGuardrail(companyName);
 
         await connect({
           getEphemeralKey: async () => EPHEMERAL_KEY,
           initialAgents: reorderedAgents,
           audioElement: sdkAudioElement,
-          outputGuardrails: [guardrail],
+          outputGuardrails: guardrail ? [guardrail] : [],
           extraContext: {
             addTranscriptBreadcrumb,
           },
@@ -370,11 +408,10 @@ function App() {
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const newAgentName = e.target.value;
-    // Reconnect session with the newly selected agent as root so that tool
-    // execution works correctly.
+    // Disconnect current session and update selected agent
     disconnectFromRealtime();
     setSelectedAgentName(newAgentName);
-    // connectToRealtime will be triggered by effect watching selectedAgentName
+    // User will need to manually click Connect to start new session with selected agent
   };
 
   // Because we need a new connection, refresh the page when codec changes
@@ -385,15 +422,43 @@ function App() {
   };
 
   // Handle voice change - need to reconnect with new voice
-  const handleVoiceChange = (newVoice: string) => {
+  const handleVoiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newVoice = e.target.value;
     setSelectedVoice(newVoice);
     localStorage.setItem('selectedVoice', newVoice);
     // Disconnect and reconnect to apply new voice if currently connected
     if (sessionStatus === "CONNECTED") {
       disconnectFromRealtime();
-      // connectToRealtime will be triggered by effect watching selectedAgentName
+      // User will need to manually reconnect to apply new voice
     }
-    // If not connected, the voice will be applied when connection happens
+    // If not connected, the voice will be applied when user manually connects
+    // Note: When user selects a specific voice, it overrides character-specific voices
+    // When user selects 'sage', characters use their individual assigned voices
+  };
+
+  // Get the current voice to display in the dropdown
+  const getCurrentVoiceDisplay = () => {
+    if (selectedVoice !== 'sage') {
+      return selectedVoice; // User has manually selected a voice
+    }
+    
+    // Show character-specific voice when using defaults
+    switch (selectedAgentName) {
+      case 'sunWukong':
+        return 'echo';
+      case 'baiguJing':
+        return 'shimmer';
+      case 'erlangShen':
+        return 'ballad';
+      case 'zhuBajie':
+        return 'verse';
+      case 'ellie':
+        return 'coral';
+      case 'joel':
+        return 'ash';
+      default:
+        return 'sage'; // Default for unknown agents
+    }
   };
 
   useEffect(() => {
@@ -526,34 +591,71 @@ function App() {
           </div>
 
           {agentSetKey && (
-            <div className="flex items-center ml-6">
-              <label className="flex items-center text-base gap-1 mr-2 font-medium">
-                Agent
-              </label>
-              <div className="relative inline-block">
-                <select
-                  value={selectedAgentName}
-                  onChange={handleSelectedAgentChange}
-                  className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
-                >
-                  {selectedAgentConfigSet?.map((agent) => (
-                    <option key={agent.name} value={agent.name}>
-                      {agent.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
-                  <svg
-                    className="h-4 w-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+            <div className="flex items-center ml-6 gap-6">
+              <div className="flex items-center">
+                <label className="flex items-center text-base gap-1 mr-2 font-medium">
+                  Agent
+                </label>
+                <div className="relative inline-block">
+                  <select
+                    value={selectedAgentName}
+                    onChange={handleSelectedAgentChange}
+                    className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
                   >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                    {selectedAgentConfigSet?.map((agent) => (
+                      <option key={agent.name} value={agent.name}>
+                        {agent.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center">
+                <label className="flex items-center text-base gap-1 mr-2 font-medium">
+                  Voice
+                </label>
+                <div className="relative inline-block">
+                  <select
+                    value={getCurrentVoiceDisplay()}
+                    onChange={handleVoiceChange}
+                    className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
+                  >
+                    <option value="sage">Character Default</option>
+                    <option value="alloy">Alloy (Female)</option>
+                    <option value="ash">Ash (Male)</option>
+                    <option value="ballad">Ballad (Male)</option>
+                    <option value="coral">Coral (Female)</option>
+                    <option value="echo">Echo (Male)</option>
+                    <option value="shimmer">Shimmer (Female)</option>
+                    <option value="verse">Verse (Male)</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
@@ -589,8 +691,6 @@ function App() {
         setIsAudioPlaybackEnabled={setIsAudioPlaybackEnabled}
         codec={urlCodec}
         onCodecChange={handleCodecChange}
-        selectedVoice={selectedVoice}
-        onVoiceChange={handleVoiceChange}
       />
     </div>
   );

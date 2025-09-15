@@ -15,8 +15,6 @@ interface BottomToolbarProps {
   setIsAudioPlaybackEnabled: (val: boolean) => void;
   codec: string;
   onCodecChange: (newCodec: string) => void;
-  selectedVoice: string;
-  onVoiceChange: (newVoice: string) => void;
 }
 
 function BottomToolbar({
@@ -33,8 +31,6 @@ function BottomToolbar({
   setIsAudioPlaybackEnabled,
   codec,
   onCodecChange,
-  selectedVoice,
-  onVoiceChange,
 }: BottomToolbarProps) {
   const isConnected = sessionStatus === "CONNECTED";
   const isConnecting = sessionStatus === "CONNECTING";
@@ -42,11 +38,6 @@ function BottomToolbar({
   const handleCodecChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCodec = e.target.value;
     onCodecChange(newCodec);
-  };
-
-  const handleVoiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newVoice = e.target.value;
-    onVoiceChange(newVoice);
   };
 
   function getConnectionButtonLabel() {
@@ -125,24 +116,6 @@ function BottomToolbar({
         </label>
       </div>
 
-      <div className="flex flex-row items-center gap-2">
-        <div>Voice:</div>
-        <select
-          id="voice-select"
-          value={selectedVoice}
-          onChange={handleVoiceChange}
-          className="border border-gray-300 rounded-md px-2 py-1 focus:outline-none cursor-pointer"
-        >
-          <option value="alloy">Alloy (Female)</option>
-          <option value="ash">Ash (Male)</option>
-          <option value="ballad">Ballad (Male)</option>
-          <option value="coral">Coral (Female)</option>
-          <option value="echo">Echo (Male)</option>
-          <option value="sage">Sage (Neutral)</option>
-          <option value="shimmer">Shimmer (Female)</option>
-          <option value="verse">Verse (Male)</option>
-        </select>
-      </div>
 
       <div className="flex flex-row items-center gap-2">
         <input
