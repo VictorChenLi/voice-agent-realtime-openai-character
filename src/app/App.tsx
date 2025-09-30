@@ -77,6 +77,8 @@ function App() {
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   // Ref to identify whether the latest agent switch came from an automatic handoff
   const handoffTriggeredRef = useRef(false);
+  // Ref to track current session status for handoff reconnection
+  const currentSessionStatusRef = useRef<SessionStatus>("DISCONNECTED");
 
   const sdkAudioElement = React.useMemo(() => {
     if (typeof window === 'undefined') return undefined;
@@ -102,10 +104,46 @@ function App() {
     interrupt,
     mute,
   } = useRealtimeSession({
-    onConnectionChange: (s) => setSessionStatus(s as SessionStatus),
+    onConnectionChange: (s) => {
+      const newStatus = s as SessionStatus;
+      setSessionStatus(newStatus);
+      currentSessionStatusRef.current = newStatus;
+    },
     onAgentHandoff: (agentName: string) => {
+      console.log(`Handoff detected: switching to ${agentName}, current session status: ${currentSessionStatusRef.current}`);
       handoffTriggeredRef.current = true;
       setSelectedAgentName(agentName);
+      // Force complete session restart to apply new voice for the handoff character
+      // This is necessary because OpenAI Realtime API has known issues with voice changes mid-session
+      if (currentSessionStatusRef.current === "CONNECTED") {
+        console.log(`Handoff to ${agentName} - forcing complete session restart for voice change`);
+        // Force a more aggressive restart by clearing the session completely
+        disconnectFromRealtime();
+        // Add a longer delay to ensure complete disconnection and session cleanup
+        // Manual disconnect/connect works, so we need to give it enough time
+        setTimeout(() => {
+          console.log(`Delayed reconnection for ${agentName} with new voice`);
+          // Force a fresh connection by ensuring session is completely cleared
+          setSessionStatus("DISCONNECTED");
+          currentSessionStatusRef.current = "DISCONNECTED";
+          // Add another small delay to ensure status update is processed
+          setTimeout(() => {
+            // Double-check that we're still disconnected before reconnecting
+            console.log(`Checking session status before reconnection: ${currentSessionStatusRef.current}`);
+            if (currentSessionStatusRef.current === "DISCONNECTED") {
+              console.log(`Proceeding with reconnection for ${agentName}`);
+              try {
+                connectToRealtime();
+                console.log(`Reconnection initiated for ${agentName}`);
+              } catch (error) {
+                console.error(`Error during reconnection for ${agentName}:`, error);
+              }
+            } else {
+              console.log(`Session status changed to ${currentSessionStatusRef.current}, skipping reconnection`);
+            }
+          }, 100);
+        }, 1000); // Increased from 200ms to 1000ms
+      }
     },
   });
 
@@ -173,6 +211,9 @@ function App() {
   //   }
   // }, [selectedAgentName]);
 
+  // Note: Auto-reconnect after handoff is now handled directly in onAgentHandoff callback
+  // This useEffect is kept for potential future use but currently not needed
+
   useEffect(() => {
     if (
       sessionStatus === "CONNECTED" &&
@@ -184,8 +225,7 @@ function App() {
       );
       addTranscriptBreadcrumb(`Agent: ${selectedAgentName}`, currentAgent);
       updateSession(!handoffTriggeredRef.current);
-      // Reset flag after handling so subsequent effects behave normally
-      handoffTriggeredRef.current = false;
+      // Note: handoffTriggeredRef is reset in the auto-reconnect useEffect
     }
   }, [selectedAgentConfigSet, selectedAgentName, sessionStatus]);
 
@@ -214,12 +254,22 @@ function App() {
   const connectToRealtime = async () => {
     const agentSetKey = searchParams.get("agentConfig") || "default";
     if (sdkScenarioMap[agentSetKey]) {
-      if (sessionStatus !== "DISCONNECTED") return;
+      // Use ref to check status to avoid stale closure issues
+      if (currentSessionStatusRef.current !== "DISCONNECTED") {
+        console.log(`Skipping connection - current status: ${currentSessionStatusRef.current}`);
+        return;
+      }
+      console.log(`Starting connection process for ${agentSetKey}`);
       setSessionStatus("CONNECTING");
+      currentSessionStatusRef.current = "CONNECTING";
 
       try {
         const EPHEMERAL_KEY = await fetchEphemeralKey();
-        if (!EPHEMERAL_KEY) return;
+        if (!EPHEMERAL_KEY) {
+          console.log(`No ephemeral key received, aborting connection`);
+          return;
+        }
+        console.log(`Ephemeral key received, proceeding with connection`);
 
         // Ensure the selectedAgentName is first so that it becomes the root
         const reorderedAgents = [...sdkScenarioMap[agentSetKey]];
@@ -231,6 +281,7 @@ function App() {
 
         // Apply voices to all agents
         // Always use character-specific voices unless user has manually selected a specific voice
+        console.log(`Applying voices to agents. Selected voice: ${selectedVoice}, Root agent: ${selectedAgentName}`);
         reorderedAgents.forEach(agent => {
           const agentName = (agent as any).name;
           let voiceToUse;
@@ -253,6 +304,18 @@ function App() {
               case 'zhuBajie':
                 voiceToUse = 'verse'; // Deep, gruff male voice for Zhu Bajie
                 break;
+              case 'tangMonk':
+                voiceToUse = 'ash'; // Calm, wise male voice for Tang Monk
+                break;
+              case 'shaWujing':
+                voiceToUse = 'ballad'; // Deep, steady male voice for Sha Wujing
+                break;
+              case 'guanyin':
+                voiceToUse = 'coral'; // Gentle, compassionate female voice for Guanyin
+                break;
+              case 'dragonHorse':
+                voiceToUse = 'verse'; // Deep, noble male voice for Dragon Horse
+                break;
               case 'ellie':
                 voiceToUse = 'coral'; // Female voice for Ellie
                 break;
@@ -265,6 +328,7 @@ function App() {
             }
           }
           
+          console.log(`Agent ${agentName} assigned voice: ${voiceToUse}`);
           (agent as any).voice = voiceToUse;
         });
 
@@ -277,6 +341,7 @@ function App() {
           ? null 
           : createModerationGuardrail(companyName);
 
+        console.log(`Calling connect with ${reorderedAgents.length} agents, root agent: ${reorderedAgents[0]?.name}`);
         await connect({
           getEphemeralKey: async () => EPHEMERAL_KEY,
           initialAgents: reorderedAgents,
@@ -286,6 +351,7 @@ function App() {
             addTranscriptBreadcrumb,
           },
         });
+        console.log(`Connection completed successfully`);
       } catch (err) {
         console.error("Error connecting via SDK:", err);
         setSessionStatus("DISCONNECTED");
@@ -451,6 +517,14 @@ function App() {
       case 'erlangShen':
         return 'ballad';
       case 'zhuBajie':
+        return 'verse';
+      case 'tangMonk':
+        return 'ash';
+      case 'shaWujing':
+        return 'ballad';
+      case 'guanyin':
+        return 'coral';
+      case 'dragonHorse':
         return 'verse';
       case 'ellie':
         return 'coral';

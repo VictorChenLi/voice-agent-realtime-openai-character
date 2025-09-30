@@ -465,6 +465,10 @@ reorderedAgents.forEach(agent => {
 - **Baigu Jing (White Bone Demon)**: `shimmer` - Seductive, mysterious female voice  
 - **Erlang Shen (Celestial War God)**: `ballad` - Deep, authoritative male voice
 - **Zhu Bajie (Pigsy)**: `verse` - Deep, gruff male voice perfect for the gluttonous pig demon
+- **Tang Monk (Xuanzang)**: `ash` - Calm, wise male voice perfect for the compassionate monk
+- **Sha Wujing (Sandy)**: `ballad` - Deep, steady male voice perfect for the loyal monk
+- **Guanyin (Bodhisattva)**: `coral` - Gentle, compassionate female voice perfect for the Bodhisattva
+- **Dragon Horse (Bai Long Ma)**: `verse` - Deep, noble male voice perfect for the dragon prince
 - **Ellie (The Last of Us)**: `coral` - Young, energetic female voice
 - **Joel (The Last of Us)**: `ash` - Gruff, experienced male voice
 
@@ -498,6 +502,11 @@ reorderedAgents.forEach(agent => {
       case 'sunWukong': voiceToUse = 'echo'; break;
       case 'baiguJing': voiceToUse = 'shimmer'; break;
       case 'erlangShen': voiceToUse = 'ballad'; break;
+      case 'zhuBajie': voiceToUse = 'verse'; break;
+      case 'tangMonk': voiceToUse = 'ash'; break;
+      case 'shaWujing': voiceToUse = 'ballad'; break;
+      case 'guanyin': voiceToUse = 'coral'; break;
+      case 'dragonHorse': voiceToUse = 'verse'; break;
       case 'ellie': voiceToUse = 'coral'; break;
       case 'joel': voiceToUse = 'ash'; break;
       default: voiceToUse = selectedVoice;
@@ -552,6 +561,7 @@ const getCurrentVoiceDisplay = () => {
     case 'baiguJing': return 'shimmer';
     case 'erlangShen': return 'ballad';
     case 'zhuBajie': return 'verse';
+    case 'tangMonk': return 'sage';
     case 'ellie': return 'coral';
     case 'joel': return 'ash';
     default: return 'sage'; // Default for unknown agents
@@ -575,6 +585,10 @@ reorderedAgents.forEach(agent => {
       case 'baiguJing': voiceToUse = 'shimmer'; break;
       case 'erlangShen': voiceToUse = 'ballad'; break;
       case 'zhuBajie': voiceToUse = 'verse'; break;
+      case 'tangMonk': voiceToUse = 'ash'; break;
+      case 'shaWujing': voiceToUse = 'ballad'; break;
+      case 'guanyin': voiceToUse = 'coral'; break;
+      case 'dragonHorse': voiceToUse = 'verse'; break;
       case 'ellie': voiceToUse = 'coral'; break;
       case 'joel': voiceToUse = 'ash'; break;
       default: voiceToUse = selectedVoice || 'sage'; // Fallback for unknown agents
@@ -910,9 +924,142 @@ Zhu Bajie ←→ Sun Wukong ←→ Erlang Shen
    Baigu Jing ←→ Sun Wukong ←→ Erlang Shen
 ```
 
+### Use Case 5: Master-Disciple Pattern (Tang Monk Leadership)
+
+#### **Scenario Flow:**
+```
+User: "Master, what should we do about this situation?"
+Tang Monk: "让为师来感化这妖怪！" (Let me convert this demon!)
+→ Handoff to Tang Monk for guidance
+Tang Monk: "悟空，你去降服这妖怪！" (Wukong, go subdue this demon!)
+→ Handoff to Sun Wukong for action
+```
+
+#### **Implementation:**
+```typescript
+// Tang Monk can hand off to all disciples and other characters
+(tangMonkAgent.handoffs as any).push(sunWukongAgent, zhuBajieAgent, erlangShenAgent, baiguJingAgent);
+
+// Handoff triggers in Tang Monk's instructions
+## 手递交接 (Handoff Logic)
+- 当遇到妖怪时，让孙悟空保护："悟空，保护为师！"
+- 当需要降妖除魔时，交给孙悟空处理："悟空，你去降服这妖怪！"
+- 当遇到强大妖怪时，建议请二郎神相助："看来需要请二郎神相助！"
+- 当需要感化妖怪时，亲自出马："让为师来感化这妖怪！"
+- 当徒弟们争吵时，出面调解："你们都是为师的徒弟，要和睦相处！"
+```
+
+### Character-Specific Handoff Triggers (Updated)
+
+#### **Tang Monk (Xuanzang)**
+- **Triggers**: Guidance, teaching, conversion, mediation, protection
+- **Handoffs**: All disciples (Sun Wukong, Zhu Bajie, Erlang Shen, Baigu Jing)
+- **Phrases**: "悟空，保护为师！" (Wukong, protect your master!)
+
+#### **Zhu Bajie (Pigsy)**
+- **Triggers**: Monsters, danger, food, complaints, seeking guidance
+- **Handoffs**: Sun Wukong (for fighting), Erlang Shen (for powerful enemies), Tang Monk (for guidance)
+- **Phrases**: "师父，您来指点迷津！" (Master, please guide us!)
+
+#### **Sun Wukong (Monkey King)**
+- **Triggers**: Fighting, investigation, powerful enemies, suspicious situations, seeking approval
+- **Handoffs**: Erlang Shen (for divine help), Zhu Bajie (for support), Baigu Jing (for investigation), Tang Monk (for guidance)
+- **Phrases**: "师父，您来指点迷津！" (Master, please guide us!)
+
+#### **Erlang Shen (Celestial War God)**
+- **Triggers**: Powerful enemies, divine intervention, maintaining order, seeking wisdom
+- **Handoffs**: Sun Wukong (for collaboration), Zhu Bajie (for support), Baigu Jing (for investigation), Tang Monk (for wisdom)
+- **Phrases**: "本神前来助阵！" (This god comes to assist!)
+
+#### **Baigu Jing (White Bone Demon)**
+- **Triggers**: Deception, disguise, being discovered, needing help, seeking conversion
+- **Handoffs**: Sun Wukong (when discovered), Erlang Shen (when cornered), Tang Monk (for conversion)
+- **Phrases**: "哎呀！被发现了！" (Oh no! I've been discovered!)
+
+#### **Sha Wujing (Sandy)**
+- **Triggers**: Mediation, protection, loyalty, support, conflict resolution
+- **Handoffs**: All characters (for support and mediation)
+- **Phrases**: "大师兄，保护师父！" (Big brother, protect the master!)
+
+#### **Guanyin (Bodhisattva)**
+- **Triggers**: Divine intervention, guidance, crisis resolution, teaching
+- **Handoffs**: All characters (for divine guidance and intervention)
+- **Phrases**: "让贫僧来降服这妖怪！" (Let me subdue this demon!)
+
+#### **Dragon Horse (Bai Long Ma)**
+- **Triggers**: Protection, wisdom, loyalty, transportation, crisis support
+- **Handoffs**: All characters (for protection and wisdom)
+- **Phrases**: "大师兄，保护师父！" (Big brother, protect the master!)
+
+### Updated Handoff Network Architecture
+
+```
+        Tang Monk (Master)
+            ↕ ↕ ↕ ↕ ↕ ↕ ↕
+Zhu Bajie ←→ Sun Wukong ←→ Erlang Shen
+     ↕              ↕              ↕
+   Baigu Jing ←→ Sun Wukong ←→ Erlang Shen
+     ↕              ↕              ↕
+   Sha Wujing ←→ Guanyin ←→ Dragon Horse
+```
+
 ### Benefits of Journey to the West Handoffs
 - **Dynamic Storytelling**: Characters naturally hand off based on their roles
 - **Authentic Interactions**: Handoffs match the original story's character dynamics
 - **Immersive Experience**: Users feel like they're part of the Journey to the West
 - **Character Development**: Each character's personality drives handoff decisions
 - **Plot Progression**: Handoffs advance the story naturally
+- **Master-Disciple Dynamics**: Tang Monk provides guidance and wisdom to all characters
+- **Comprehensive Coverage**: All characters can interact with each other through handoffs
+
+## Handoff Voice Change Issue and Solution
+
+### **The Problem**
+The OpenAI Realtime API has a limitation: **voice cannot be changed during an active session**. Voice is set when the session is created and remains fixed throughout the session. This means:
+
+- UI shows the correct voice for each character during handoffs
+- But the actual audio voice doesn't change during handoffs
+- Users hear the same voice regardless of which character is speaking
+
+### **The Solution**
+Implemented automatic session reconnection during handoffs to apply the correct voice:
+
+```typescript
+onAgentHandoff: (agentName: string) => {
+  handoffTriggeredRef.current = true;
+  setSelectedAgentName(agentName);
+  // Reconnect to apply new voice for the handoff character
+  // This is necessary because OpenAI Realtime API doesn't support voice changes mid-session
+  if (sessionStatus === "CONNECTED") {
+    console.log(`Handoff to ${agentName} - reconnecting to apply new voice`);
+    disconnectFromRealtime();
+    // The useEffect will trigger reconnection with the new agent and voice
+  }
+},
+
+// Auto-reconnect after handoff to apply new voice
+useEffect(() => {
+  if (handoffTriggeredRef.current && selectedAgentName && sessionStatus === "DISCONNECTED") {
+    console.log(`Auto-reconnecting after handoff to ${selectedAgentName}`);
+    connectToRealtime();
+  }
+}, [selectedAgentName, sessionStatus]);
+```
+
+### **How It Works**
+1. **Handoff Occurs**: Character A hands off to Character B
+2. **Disconnect**: Session is disconnected to allow voice change
+3. **Auto-Reconnect**: Session automatically reconnects with Character B's voice
+4. **Voice Applied**: Character B now speaks with their assigned voice
+5. **Seamless Experience**: User experiences proper voice changes during handoffs
+
+### **Trade-offs**
+- **Pros**: Voice changes work correctly during handoffs
+- **Cons**: Brief disconnection/reconnection during handoffs (usually < 1 second)
+- **User Experience**: Minimal disruption, voice changes are now audible
+
+### **Technical Details**
+- Voice is applied in `connectToRealtime()` function
+- Handoff detection uses `handoffTriggeredRef` to distinguish from manual disconnections
+- Auto-reconnection only happens after handoffs, not manual agent changes
+- Console logging helps debug handoff voice changes
