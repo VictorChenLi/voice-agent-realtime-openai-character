@@ -1,0 +1,157 @@
+/* Mobile-specific styles for better touch interaction and responsiveness */
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) {
+  /* Increase button sizes for better touch targets */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better select dropdowns on mobile */
+  select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Better input fields on mobile */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+    min-height: 44px;
+  }
+
+  /* Improve scrolling performance */
+  .transcript-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+
+  /* Bottom toolbar optimizations */
+  .bottom-toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    padding-bottom: env(safe-area-inset-bottom); /* iPhone notch support */
+  }
+
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Better tap highlighting */
+  button,
+  a,
+  select {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Tablet-specific adjustments */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Adjust layout for tablets */
+  .main-content {
+    padding: 1rem;
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Reduce header height in landscape */
+  .header {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Adjust content area */
+  .main-content {
+    max-height: calc(100vh - 120px);
+  }
+}
+
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* iOS viewport height fix */
+  .h-screen {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Android specific fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.5rem;
+    padding-right: 2.5rem;
+  }
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Responsive font sizes */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 768px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+/* Safe area padding for devices with notches */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Mobile slide-out panel animations */
+@media (max-width: 767px) {
+  /* Hardware acceleration for smooth animation */
+  .transition-transform {
+    -webkit-transition: -webkit-transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  /* Backdrop fade animation */
+  .bg-opacity-50 {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+}

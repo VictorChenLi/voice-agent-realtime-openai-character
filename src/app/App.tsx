@@ -73,6 +73,7 @@ function App() {
   const [selectedAgentConfigSet, setSelectedAgentConfigSet] = useState<
     RealtimeAgent[] | null
   >(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   // Ref to identify whether the latest agent switch came from an automatic handoff
@@ -151,7 +152,7 @@ function App() {
     useState<SessionStatus>("DISCONNECTED");
 
   const [isEventsPaneExpanded, setIsEventsPaneExpanded] =
-    useState<boolean>(true);
+    useState<boolean>(false);
   const [userText, setUserText] = useState<string>("");
   const [isPTTActive, setIsPTTActive] = useState<boolean>(false);
   const [isPTTUserSpeaking, setIsPTTUserSpeaking] = useState<boolean>(false);
@@ -540,10 +541,20 @@ function App() {
     if (storedPushToTalkUI) {
       setIsPTTActive(storedPushToTalkUI === "true");
     }
-    const storedLogsExpanded = localStorage.getItem("logsExpanded");
-    if (storedLogsExpanded) {
-      setIsEventsPaneExpanded(storedLogsExpanded === "true");
+
+    // For mobile, always start with logs hidden
+    // For desktop, load from localStorage
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile) {
+      const storedLogsExpanded = localStorage.getItem("logsExpanded");
+      if (storedLogsExpanded) {
+        setIsEventsPaneExpanded(storedLogsExpanded === "true");
+      }
+    } else {
+      // Ensure logs are hidden on mobile by default
+      setIsEventsPaneExpanded(false);
     }
+
     const storedAudioPlaybackEnabled = localStorage.getItem(
       "audioPlaybackEnabled"
     );
@@ -557,7 +568,11 @@ function App() {
   }, [isPTTActive]);
 
   useEffect(() => {
-    localStorage.setItem("logsExpanded", isEventsPaneExpanded.toString());
+    // Only save logs expanded state on desktop
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile) {
+      localStorage.setItem("logsExpanded", isEventsPaneExpanded.toString());
+    }
   }, [isEventsPaneExpanded]);
 
   useEffect(() => {
@@ -619,62 +634,90 @@ function App() {
 
   return (
     <div className="text-base flex flex-col h-screen bg-gray-100 text-gray-800 relative">
-      <div className="p-5 text-lg font-semibold flex justify-between items-center">
-        <div
-          className="flex items-center cursor-pointer"
-          onClick={() => window.location.reload()}
-        >
-          <div>
-            <Image
-              src="/openai-logomark.svg"
-              alt="OpenAI Logo"
-              width={20}
-              height={20}
-              className="mr-2"
-            />
+      {/* Header - Mobile Responsive */}
+      <div className="p-3 md:p-5 text-lg font-semibold flex flex-col md:flex-row md:justify-between md:items-center">
+        {/* Logo and Title */}
+        <div className="flex justify-between items-center">
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => window.location.reload()}
+          >
+            <div>
+              <Image
+                src="/openai-logomark.svg"
+                alt="OpenAI Logo"
+                width={20}
+                height={20}
+                className="mr-2"
+              />
+            </div>
+            <div className="text-base md:text-lg">
+              Realtime API <span className="text-gray-500">Agents</span>
+            </div>
           </div>
-          <div>
-            Realtime API <span className="text-gray-500">Agents</span>
-          </div>
+
+          {/* Mobile: Show current scenario/agent when menu is closed */}
+          {!isMobileMenuOpen && agentSetKey && selectedAgentName && (
+            <div className="md:hidden flex items-center gap-2 text-xs text-gray-600 ml-2">
+              <span className="font-medium">🎬 {agentSetKey}</span>
+              <span className="text-gray-400">•</span>
+              <span className="text-gray-500">🤖 {selectedAgentName}</span>
+            </div>
+          )}
+
+          {/* Mobile Menu Toggle (visible on mobile only) */}
+          <button
+            className="md:hidden p-2"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
+            </svg>
+          </button>
         </div>
-        <div className="flex items-center">
-          <label className="flex items-center text-base gap-1 mr-2 font-medium">
-            Scenario
-          </label>
-          <div className="relative inline-block">
-            <select
-              value={agentSetKey}
-              onChange={handleAgentChange}
-              className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
-            >
-              {Object.keys(allAgentSets).map((agentKey) => (
-                <option key={agentKey} value={agentKey}>
-                  {agentKey}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
-              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
-                  clipRule="evenodd"
-                />
-              </svg>
+
+        {/* Controls - Desktop */}
+        <div className="hidden md:flex items-center gap-4">
+          <div className="flex items-center">
+            <label className="text-base gap-1 mr-2 font-medium">
+              Scenario
+            </label>
+            <div className="relative inline-block">
+              <select
+                value={agentSetKey}
+                onChange={handleAgentChange}
+                className="appearance-none border border-gray-300 rounded-lg text-base px-3 py-1.5 pr-10 cursor-pointer font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {Object.keys(allAgentSets).map((agentKey) => (
+                  <option key={agentKey} value={agentKey}>
+                    {agentKey}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
 
           {agentSetKey && (
-            <div className="flex items-center ml-6 gap-6">
+            <>
               <div className="flex items-center">
-                <label className="flex items-center text-base gap-1 mr-2 font-medium">
+                <label className="text-base gap-1 mr-2 font-medium">
                   Agent
                 </label>
                 <div className="relative inline-block">
                   <select
                     value={selectedAgentName}
                     onChange={handleSelectedAgentChange}
-                    className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
+                    className="appearance-none border border-gray-300 rounded-lg text-base px-3 py-1.5 pr-10 cursor-pointer font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {selectedAgentConfigSet?.map((agent) => (
                       <option key={agent.name} value={agent.name}>
@@ -683,11 +726,7 @@ function App() {
                     ))}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
-                    <svg
-                      className="h-4 w-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                       <path
                         fillRule="evenodd"
                         d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
@@ -699,14 +738,14 @@ function App() {
               </div>
 
               <div className="flex items-center">
-                <label className="flex items-center text-base gap-1 mr-2 font-medium">
+                <label className="text-base gap-1 mr-2 font-medium">
                   Voice
                 </label>
                 <div className="relative inline-block">
                   <select
                     value={getCurrentVoiceDisplay()}
                     onChange={handleVoiceChange}
-                    className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
+                    className="appearance-none border border-gray-300 rounded-lg text-base px-3 py-1.5 pr-10 cursor-pointer font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="sage">Character Default</option>
                     <option value="alloy">Alloy (Female)</option>
@@ -718,11 +757,7 @@ function App() {
                     <option value="verse">Verse (Male)</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
-                    <svg
-                      className="h-4 w-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                       <path
                         fillRule="evenodd"
                         d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
@@ -732,11 +767,75 @@ function App() {
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
         </div>
+
+        {/* Controls - Mobile Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden mt-4 space-y-3 pb-3 border-t pt-3">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Scenario
+              </label>
+              <select
+                value={agentSetKey}
+                onChange={handleAgentChange}
+                className="w-full border border-gray-300 rounded-lg text-base px-3 py-2 cursor-pointer font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {Object.keys(allAgentSets).map((agentKey) => (
+                  <option key={agentKey} value={agentKey}>
+                    {agentKey}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {agentSetKey && (
+              <>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Agent
+                  </label>
+                  <select
+                    value={selectedAgentName}
+                    onChange={handleSelectedAgentChange}
+                    className="w-full border border-gray-300 rounded-lg text-base px-3 py-2 cursor-pointer font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {selectedAgentConfigSet?.map((agent) => (
+                      <option key={agent.name} value={agent.name}>
+                        {agent.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Voice
+                  </label>
+                  <select
+                    value={getCurrentVoiceDisplay()}
+                    onChange={handleVoiceChange}
+                    className="w-full border border-gray-300 rounded-lg text-base px-3 py-2 cursor-pointer font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="sage">Character Default</option>
+                    <option value="alloy">Alloy (Female)</option>
+                    <option value="ash">Ash (Male)</option>
+                    <option value="ballad">Ballad (Male)</option>
+                    <option value="coral">Coral (Female)</option>
+                    <option value="echo">Echo (Male)</option>
+                    <option value="shimmer">Shimmer (Female)</option>
+                    <option value="verse">Verse (Male)</option>
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
+      {/* Main Content - Mobile Responsive */}
       <div className="flex flex-1 gap-2 px-2 overflow-hidden relative">
         <Transcript
           userText={userText}
@@ -748,7 +847,10 @@ function App() {
           }
         />
 
-        <Events isExpanded={isEventsPaneExpanded} />
+        <Events
+          isExpanded={isEventsPaneExpanded}
+          onClose={() => setIsEventsPaneExpanded(false)}
+        />
       </div>
 
       <BottomToolbar

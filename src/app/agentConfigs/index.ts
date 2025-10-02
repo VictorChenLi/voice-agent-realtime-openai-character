@@ -13,4 +13,4 @@ export const allAgentSets: Record<string, RealtimeAgent[]> = {
   journeyToWest: journeyToWestScenario,
 };
 
-export const defaultAgentSetKey = 'chatSupervisor';
+export const defaultAgentSetKey = 'journeyToWest';
