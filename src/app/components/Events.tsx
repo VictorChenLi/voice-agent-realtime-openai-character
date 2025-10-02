@@ -11,19 +11,9 @@ export interface EventsProps {
 
 function Events({ isExpanded, onClose }: EventsProps) {
   const [prevEventLogs, setPrevEventLogs] = useState<LoggedEvent[]>([]);
-  const [isMobile, setIsMobile] = useState(false);
   const eventLogsContainerRef = useRef<HTMLDivElement | null>(null);
 
   const { loggedEvents, toggleExpand } = useEvent();
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const getDirectionArrow = (direction: string) => {
     if (direction === "client") return { symbol: "▲", color: "#7f5af0" };
